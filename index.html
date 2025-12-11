@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予算管理システム - 39Outlet店舗管理システム</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="budget-styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabaseライブラリが読み込まれたことを確認し、グローバルクライアントを初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof window.supabase === 'undefined') {
+                console.error('Supabaseライブラリが読み込まれていません');
+            } else {
+                console.log('Supabaseライブラリが正常に読み込まれました');
+                // グローバルなSupabaseクライアントインスタンスを初期化（一度だけ）
+                if (typeof createSupabaseClient === 'function' && !window.supabaseClient) {
+                    window.supabaseClient = createSupabaseClient();
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+        <h1 style="margin-bottom: 30px;"><i class="fas fa-chart-line"></i> 予算管理</h1>
+        
+        <!-- 予算概要 -->
+        <div class="budget-overview">
+            <div class="budget-card">
+                <h3>今月の売上目標</h3>
+                <p id="current-revenue-target" class="budget-amount positive">¥0</p>
+                <span class="budget-label">Revenue Target</span>
+            </div>
+            <div class="budget-card">
+                <h3>今月の支出予算</h3>
+                <p id="current-expense-budget" class="budget-amount negative">¥0</p>
+                <span class="budget-label">Expense Budget</span>
+            </div>
+            <div class="budget-card">
+                <h3>今月の利益目標</h3>
+                <p id="current-profit-target" class="budget-amount positive">¥0</p>
+                <span class="budget-label">Profit Target</span>
+            </div>
+        </div>
+
+        <!-- タブナビゲーション -->
+        <div class="budget-tabs">
+            <button class="budget-tab active" data-tab="monthly">
+                <i class="fas fa-calendar-alt"></i>
+                月次予算
+            </button>
+            <button class="budget-tab" data-tab="weekly">
+                <i class="fas fa-calendar-week"></i>
+                曜日別予算
+            </button>
+        </div>
+
+        <!-- 月次予算タブ -->
+        <div id="budget-monthly" class="budget-content active">
+            <div class="budget-section">
+                <h3><i class="fas fa-plus"></i> 月次予算登録</h3>
+                <form id="monthly-budget-form" class="budget-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="monthly-store">店舗 <span class="required">*</span></label>
+                            <select name="store" id="monthly-store" required>
+                                <option value="">店舗を選択</option>
+                                <option value="iruma">入間店</option>
+                                <option value="tokorozawa">所沢店</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="monthly-year">年 <span class="required">*</span></label>
+                            <select name="year" id="monthly-year" class="year-select" required>
+                                <option value="">年を選択</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="monthly-month">月 <span class="required">*</span></label>
+                            <select name="month" id="monthly-month" class="month-select" required>
+                                <option value="">月を選択</option>
+                                <option value="1">1月</option>
+                                <option value="2">2月</option>
+                                <option value="3">3月</option>
+                                <option value="4">4月</option>
+                                <option value="5">5月</option>
+                                <option value="6">6月</option>
+                                <option value="7">7月</option>
+                                <option value="8">8月</option>
+                                <option value="9">9月</option>
+                                <option value="10">10月</option>
+                                <option value="11">11月</option>
+                                <option value="12">12月</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="revenue-target">売上目標 <span class="required">*</span></label>
+                            <input type="number" name="revenue_target" id="revenue-target" min="0" step="1000" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="expense-budget">支出予算</label>
+                            <input type="number" name="expense_budget" id="expense-budget" min="0" step="1000">
+                        </div>
+                    </div>
+
+                    <div class="expense-breakdown">
+                        <h4>支出内訳</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="staff-cost">人件費</label>
+                                <input type="number" name="staff_cost" id="staff-cost" min="0" step="1000">
+                            </div>
+                            <div class="form-group">
+                                <label for="utility-cost">光熱費</label>
+                                <input type="number" name="utility_cost" id="utility-cost" min="0" step="1000">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="material-cost">材料費</label>
+                                <input type="number" name="material_cost" id="material-cost" min="0" step="1000">
+                            </div>
+                            <div class="form-group">
+                                <label for="other-cost">その他</label>
+                                <input type="number" name="other_cost" id="other-cost" min="0" step="1000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="monthly-notes">備考</label>
+                        <textarea name="notes" id="monthly-notes" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 保存
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="exportBudgetData()">
+                            <i class="fas fa-download"></i> エクスポート
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="budget-section">
+                <h3><i class="fas fa-list"></i> 登録済み月次予算</h3>
+                <div id="monthly-budgets-list" class="budgets-list">
+                    <!-- 月次予算データがここに表示されます -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 曜日別予算タブ -->
+        <div id="budget-weekly" class="budget-content">
+            <div class="budget-section">
+                <h3><i class="fas fa-plus"></i> 曜日別予算登録</h3>
+                <form id="weekly-budget-form" class="budget-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="weekly-store">店舗 <span class="required">*</span></label>
+                            <select name="store" id="weekly-store" required>
+                                <option value="">店舗を選択</option>
+                                <option value="iruma">入間店</option>
+                                <option value="tokorozawa">所沢店</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="weekly-year">年 <span class="required">*</span></label>
+                            <select name="year" id="weekly-year" class="year-select" required>
+                                <option value="">年を選択</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="weekly-month">月 <span class="required">*</span></label>
+                            <select name="month" id="weekly-month" class="month-select" required>
+                                <option value="">月を選択</option>
+                                <option value="1">1月</option>
+                                <option value="2">2月</option>
+                                <option value="3">3月</option>
+                                <option value="4">4月</option>
+                                <option value="5">5月</option>
+                                <option value="6">6月</option>
+                                <option value="7">7月</option>
+                                <option value="8">8月</option>
+                                <option value="9">9月</option>
+                                <option value="10">10月</option>
+                                <option value="11">11月</option>
+                                <option value="12">12月</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="weekly-input-grid">
+                        <div class="day-input-group">
+                            <h4>月曜日</h4>
+                            <div class="day-inputs">
+                                <div class="form-group">
+                                    <label for="monday-revenue">売上目標</label>
+                                    <input type="number" name="monday_revenue" id="monday-revenue" min="0" step="1000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="monday-expense">支出予算</label>
+                                    <input type="number" name="monday_expense" id="monday-expense" min="0" step="1000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="day-input-group">
+                            <h4>火曜日</h4>
+                            <div class="day-inputs">
+                                <div class="form-group">
+                                    <label for="tuesday-revenue">売上目標</label>
+                                    <input type="number" name="tuesday_revenue" id="tuesday-revenue" min="0" step="1000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="tuesday-expense">支出予算</label>
+                                    <input type="number" name="tuesday_expense" id="tuesday-expense" min="0" step="1000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="day-input-group">
+                            <h4>水曜日</h4>
+                            <div class="day-inputs">
+                                <div class="form-group">
+                                    <label for="wednesday-revenue">売上目標</label>
+                                    <input type="number" name="wednesday_revenue" id="wednesday-revenue" min="0" step="1000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="wednesday-expense">支出予算</label>
+                                    <input type="number" name="wednesday_expense" id="wednesday-expense" min="0" step="1000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="day-input-group">
+                            <h4>木曜日</h4>
+                            <div class="day-inputs">
+                                <div class="form-group">
+                                    <label for="thursday-revenue">売上目標</label>
+                                    <input type="number" name="thursday_revenue" id="thursday-revenue" min="0" step="1000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="thursday-expense">支出予算</label>
+                                    <input type="number" name="thursday_expense" id="thursday-expense" min="0" step="1000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="day-input-group">
+                            <h4>金曜日</h4>
+                            <div class="day-inputs">
+                                <div class="form-group">
+                                    <label for="friday-revenue">売上目標</label>
+                                    <input type="number" name="friday_revenue" id="friday-revenue" min="0" step="1000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="friday-expense">支出予算</label>
+                                    <input type="number" name="friday_expense" id="friday-expense" min="0" step="1000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="day-input-group">
+                            <h4>土曜日</h4>
+                            <div class="day-inputs">
+                                <div class="form-group">
+                                    <label for="saturday-revenue">売上目標</label>
+                                    <input type="number" name="saturday_revenue" id="saturday-revenue" min="0" step="1000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="saturday-expense">支出予算</label>
+                                    <input type="number" name="saturday_expense" id="saturday-expense" min="0" step="1000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="day-input-group">
+                            <h4>日曜日</h4>
+                            <div class="day-inputs">
+                                <div class="form-group">
+                                    <label for="sunday-revenue">売上目標</label>
+                                    <input type="number" name="sunday_revenue" id="sunday-revenue" min="0" step="1000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="sunday-expense">支出予算</label>
+                                    <input type="number" name="sunday_expense" id="sunday-expense" min="0" step="1000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="day-input-group">
+                            <h4>祝日</h4>
+                            <div class="day-inputs">
+                                <div class="form-group">
+                                    <label for="holiday-revenue">売上目標</label>
+                                    <input type="number" name="holiday_revenue" id="holiday-revenue" min="0" step="1000" placeholder="祝日の売上目標">
+                                </div>
+                                <div class="form-group">
+                                    <label for="holiday-expense">支出予算</label>
+                                    <input type="number" name="holiday_expense" id="holiday-expense" min="0" step="1000" placeholder="祝日の支出予算">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 保存
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="budget-section">
+                <h3><i class="fas fa-list"></i> 登録済み曜日別予算</h3>
+                <div id="weekly-budgets-list" class="budgets-list">
+                    <!-- 曜日別予算データがここに表示されます -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="supabase-config.js"></script>
+    <script src="budget.js"></script>
+</body>
+</html>
+
